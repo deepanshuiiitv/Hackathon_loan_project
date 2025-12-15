@@ -1,29 +1,49 @@
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File,Form
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.requests import Request
 import shutil
+
 from database import Base, engine, SessionLocal
 from models import LoanApplication
 from ai_engine import extract_text, extract_fields, calculate_metrics
-from schemas import LoanResponse
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="AI Loan Underwriting System")
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
-@app.get("/")
-def home():
-    return {"message": "AI Loan Underwriting API is running"}
+@app.get("/apply-loan-ui", response_class=HTMLResponse)
+def apply_ui(request: Request):
+    return templates.TemplateResponse("apply_loan.html", {"request": request})
 
+@app.get("/dashboard-ui", response_class=HTMLResponse)
+def dashboard_ui(request: Request):
+    db = SessionLocal()
+    loans = db.query(LoanApplication).all()
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {"request": request, "loans": loans}
+    )
 
-@app.post("/apply-loan", response_model=LoanResponse)
-def apply_loan(name: str, pdf: UploadFile = File(...)):
-    file_path = f"temp_{pdf.filename}"
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(pdf.file, buffer)
+@app.post("/apply-loan")
+@app.post("/apply-loan")
+def apply_loan(
+    name: str = Form(...),
+    pdf: UploadFile = File(...)
+):
+    path = f"temp_{pdf.filename}"
+    with open(path, "wb") as f:
+        shutil.copyfileobj(pdf.file, f)
 
-    text = extract_text(file_path)
+    text = extract_text(path)
     fields = extract_fields(text)
-    dti, risk_score, decision = calculate_metrics(fields)
+    dti, risk, decision = calculate_metrics(fields)
 
     db = SessionLocal()
     loan = LoanApplication(
@@ -32,22 +52,21 @@ def apply_loan(name: str, pdf: UploadFile = File(...)):
         income=fields["income"],
         credit_score=fields["credit_score"],
         dti=dti,
-        risk_score=risk_score,
+        risk_score=risk,
         decision=decision
     )
     db.add(loan)
     db.commit()
 
-    return LoanResponse(
-        name=name,
-        income=fields["income"],
-        credit_score=fields["credit_score"],
-        dti=dti,
-        risk_score=risk_score,
-        decision=decision
-    )
+    return {
+        "name": name,
+        "income": fields["income"],
+        "credit_score": fields["credit_score"],
+        "risk_score": risk,
+        "decision": decision
+    }
 
 @app.get("/lender-dashboard")
-def dashboard():
+def lender_dashboard():
     db = SessionLocal()
     return db.query(LoanApplication).all()

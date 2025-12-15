@@ -1,0 +1,3 @@
+pip install fastapi uvicorn pdfplumber spacy scikit-learn pandas numpy sqlalchemy
+python -m spacy download en_core_web_sm
+pip install fastapi uvicorn sqlalchemy pymysql python-multipart

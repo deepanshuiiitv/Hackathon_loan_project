@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lender Dashboard</title>
+  <style>
+    body {
+      background: #020617;
+      color: #e5e7eb;
+      font-family: Arial, sans-serif;
+      padding: 40px;
+    }
+    h2 {
+      color: #22d3ee;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #0f172a;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    th, td {
+      padding: 14px;
+      text-align: left;
+    }
+    th {
+      background: #020617;
+      color: #38bdf8;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+    tr:nth-child(even) {
+      background: #020617;
+    }
+    .approve {
+      color: #22c55e;
+      font-weight: bold;
+    }
+    .high {
+      color: #facc15;
+      font-weight: bold;
+    }
+    .reject {
+      color: #ef4444;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Lender Dashboard</h2>
+
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Income</th>
+    <th>Credit Score</th>
+    <th>DTI</th>
+    <th>Risk Score</th>
+    <th>Decision</th>
+  </tr>
+
+  {% for loan in loans %}
+  <tr>
+    <td>{{ loan.name }}</td>
+    <td>{{ loan.income }}</td>
+    <td>{{ loan.credit_score }}</td>
+    <td>{{ loan.dti }}</td>
+    <td>{{ loan.risk_score }}</td>
+    <td class="
+      {% if 'LOW' in loan.decision %}approve
+      {% elif 'HIGH' in loan.decision %}high
+      {% else %}reject{% endif %}
+    ">
+      {{ loan.decision }}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+
+</body>
+</html>
