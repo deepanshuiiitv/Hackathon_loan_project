@@ -43,11 +43,15 @@ def apply_loan(
 
     text = extract_text(path)
     fields = extract_fields(text)
+
+    # DECIDE NAME: Prefer PDF extraction, fallback to Form Input
+    final_name = fields.get("name") if fields.get("name") else name
+
     dti, risk, decision = calculate_metrics(fields)
 
     db = SessionLocal()
     loan = LoanApplication(
-        name=name,
+        name=final_name,
         age=fields["age"],
         income=fields["income"],
         credit_score=fields["credit_score"],
@@ -59,7 +63,7 @@ def apply_loan(
     db.commit()
 
     return {
-        "name": name,
+        "name": final_name,
         "income": fields["income"],
         "credit_score": fields["credit_score"],
         "risk_score": risk,
