@@ -2,50 +2,92 @@ import pdfplumber
 import re
 import spacy
 from transformers import pipeline
+import fitz  # PyMuPDF
+import pytesseract
+from PIL import Image
+import io
+import os
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+os.environ["TESSDATA_PREFIX"] = r"C:\Program Files\Tesseract-OCR\tessdata"
 
 # --- MODEL INITIALIZATION ---
 try:
     nlp = spacy.load("en_core_web_sm")
 except OSError:
-    # Fallback if model isn't downloaded
     print("⚠️ SpaCy model not found. Run: python -m spacy download en_core_web_sm")
     nlp = None
 
-# Load Transformers (using a faster model for CPU efficiency)
 print("Loading Transformers Pipeline...")
 qa_pipeline = pipeline("question-answering", model="distilbert-base-cased-distilled-squad")
 
-def extract_text(pdf_path):
+def extract_text(file_path):
     """
-    Reads text from a digital PDF.
-    Since your files are digital (from Word), we do NOT need OCR.
+    Hybrid Extractor: 
+    1. Handles Images (.jpg, .png) using OCR.
+    2. Handles PDFs using Digital Extraction first.
+    3. Fallback: Uses PyMuPDF + OCR for scanned PDFs.
     """
     text = ""
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages:
-            # extract_text() is perfect for digital PDFs
-            text += page.extract_text() or ""
+    ext = os.path.splitext(file_path)[1].lower()
+
+    # --- CASE 1: IMAGE FILES ---
+    if ext in [".jpg", ".jpeg", ".png", ".bmp", ".tiff"]:
+        print(f"🖼️ Processing Image: {file_path}")
+        try:
+            image = Image.open(file_path)
+            text = pytesseract.image_to_string(image)
+        except Exception as e:
+            print(f"❌ Image OCR failed: {e}")
+
+    # --- CASE 2: PDF FILES ---
+    elif ext == ".pdf":
+        print(f"📄 Processing PDF: {file_path}")
+        
+        # Attempt A: Digital Extraction (Fast)
+        try:
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    extracted = page.extract_text()
+                    if extracted:
+                        text += extracted + "\n"
+        except Exception as e:
+            print(f"Digital extraction error: {e}")
+
+        # Attempt B: OCR Fallback (PyMuPDF + Tesseract)
+        if len(text.strip()) < 50:
+            print("⚠️ Scanned PDF detected. Switching to OCR (via PyMuPDF)...")
+            try:
+                # Open PDF with PyMuPDF
+                doc = fitz.open(file_path)
+                ocr_text = ""
+                
+                for page_num in range(len(doc)):
+                    page = doc.load_page(page_num)
+                    # Render page to an image (pixmap)
+                    pix = page.get_pixmap(dpi=300)
+                    
+                    # Convert raw bytes to PIL Image
+                    img_data = pix.tobytes("png")
+                    image = Image.open(io.BytesIO(img_data))
+                    
+                    # Run OCR on the image
+                    ocr_text += pytesseract.image_to_string(image) + "\n"
+                
+                text = ocr_text
+            except Exception as e:
+                print(f"❌ OCR Failed: {e}. Ensure Tesseract is installed.")
+
     return text
 
 def preprocess_text(text):
-    """
-    CRITICAL STEP: Cleans up the messy output from different PDF layouts.
-    """
-    # 1. Remove quotes (fixes the CSV-style issue in Sample 8)
+    if not text: return ""
     text = text.replace('"', '').replace("'", "")
-    
-    # 2. Replace newlines with spaces (fixes broken sentences)
     text = text.replace('\n', ' ')
-    
-    # 3. Remove multiple spaces
     text = re.sub(r'\s+', ' ', text)
-    
     return text.strip()
 
 def parse_income_value(text_val):
-    """Converts '$50,000', '50k', 'Rs 50000' to float."""
     if not text_val: return 0.0
-    # Remove currency symbols and commas
     clean = re.sub(r"[^\d\.kK]", "", text_val).lower()
     try:
         if "k" in clean:
@@ -55,8 +97,6 @@ def parse_income_value(text_val):
         return 0.0
 
 def extract_fields(text):
-    # --- STEP 1: CLEAN THE INPUT ---
-    # This solves the issue where "Income" and "90000" are on different lines
     clean_text = preprocess_text(text)
     
     data = {
@@ -66,21 +106,16 @@ def extract_fields(text):
         "credit_score": 650
     }
 
-    # --- 1. NAME EXTRACTION (Transformers + Regex) ---
-    # Attempt 1: Transformers (Best for narrative texts like "submitted by Ms. Priya...")
+    # --- 1. NAME EXTRACTION ---
     try:
-        short_context = clean_text[:500] # Name is usually at the top
+        short_context = clean_text[:500] 
         result = qa_pipeline(question="What is the name of the applicant?", context=short_context)
         candidate_name = result['answer']
-        
-        # Validation: A valid name usually has 2+ words and no digits
         if len(candidate_name) > 3 and not any(char.isdigit() for char in candidate_name):
-            # Clean up titles like "Mr.", "Ms."
             data["name"] = re.sub(r"^(Mr\.|Ms\.|Mrs\.|Dr\.)\s*", "", candidate_name).strip()
-    except Exception as e:
-        print(f"Name QA failed: {e}")
+    except Exception:
+        pass
 
-    # Attempt 2: Regex Fallback (Best for forms like "Name: John Doe")
     if not data["name"]:
         name_patterns = [
             r"Name[:\-\s]+([A-Za-z\s\.]+)", 
@@ -89,75 +124,56 @@ def extract_fields(text):
         for pat in name_patterns:
             match = re.search(pat, clean_text, re.IGNORECASE)
             if match:
-                # Take first 3 words max to avoid capturing garbage text
                 raw_name = match.group(1).strip()
                 data["name"] = " ".join(raw_name.split()[:3]) 
                 break
 
-    # --- 2. INCOME EXTRACTION (Regex + SpaCy) ---
-    # Strategy: Regex is often safer for Income than NLP for simple forms
-    # We look for "Income" followed by ANY characters (.*?) until a number appear
+    # --- 2. INCOME EXTRACTION ---
     income_patterns = [
-        r"(?:Income|Salary|Earnings).*?([\d,]+(?:k|000)?)", # Matches: "Income... 90000"
-        r"Rs\.?\s*([\d,]+)",                                 # Matches: "Rs. 90,000"
-        r"INR\s*([\d,]+)"                                    # Matches: "INR 90,000"
+        r"(?:Income|Salary|Earnings).*?([\d,]+(?:k|000)?)", 
+        r"Rs\.?\s*([\d,]+)", 
+        r"INR\s*([\d,]+)"
     ]
-    
     for pat in income_patterns:
         match = re.search(pat, clean_text, re.IGNORECASE)
         if match:
             val = parse_income_value(match.group(1))
-            # Filter: Income is usually > 1000 and < 10,000,000
             if 1000 < val < 10000000:
                 data["income"] = val
                 break
 
-    # --- 3. AGE EXTRACTION (Transformers) ---
-    # Transformers work best on "Natural Language" (sentences)
-    # We pass the cleaned text so it understands the context better
+    # --- 3. AGE EXTRACTION ---
     try:
-        # We assume the age is in the first 1000 characters to save speed
         short_context = clean_text[:1000]
         result = qa_pipeline(question="What is the age of the applicant?", context=short_context)
-        
-        # Extract digits from the answer (e.g., "28 years" -> 28)
-        age_str = result['answer']
-        age_match = re.search(r"(\d{2})", age_str)
+        age_match = re.search(r"(\d{2})", result['answer'])
         if age_match:
             data["age"] = int(age_match.group(1))
-    except Exception as e:
-        print(f"Transformers QA error: {e}")
+    except Exception:
+        pass
 
-    # --- 4. CREDIT SCORE EXTRACTION (SpaCy) ---
-    # Strategy: Try SpaCy first (Context aware), then Regex (Pattern strict)
+    # --- 4. CREDIT SCORE EXTRACTION ---
     score_found = False
-    # Attempt 1: Transformers (BEST for Narrative sentences like "score is 760")
+    
+    # Attempt 1: Transformers
     try:
-        # We ask specifically for the score
         result = qa_pipeline(question="What is the credit score?", context=clean_text[:1000])
-        answer = result['answer']
-        # Look for a 3-digit number in the answer
-        score_match = re.search(r"\b(\d{3})\b", answer)
+        score_match = re.search(r"\b(\d{3})\b", result['answer'])
         if score_match:
             score = int(score_match.group(1))
             if 300 <= score <= 900:
                 data["credit_score"] = score
                 score_found = True
-    except Exception as e:
-        print(f"Credit Score QA failed: {e}")
+    except Exception:
+        pass
 
-    # Attempt 2: Relaxed Regex (Allows words in between)
+    # Attempt 2: Relaxed Regex
     if not score_found:
-        # Pattern explanation:
-        # "Credit Score" OR "CIBIL"
-        # followed by ANY text (.{0,50}?) up to 50 chars (non-greedy)
-        # followed by a 3-digit number (\d{3})
         relaxed_patterns = [
             r"Credit Score.{0,50}?(\d{3})", 
             r"CIBIL.{0,50}?(\d{3})",
             r"Score.{0,50}?(\d{3})"
         ]
-        
         for pat in relaxed_patterns:
             match = re.search(pat, clean_text, re.IGNORECASE)
             if match:
@@ -167,7 +183,7 @@ def extract_fields(text):
                     score_found = True
                     break
 
-    # Attempt 3: Strict SpaCy Matcher (Fallback for structured forms)
+    # Attempt 3: SpaCy Matcher
     if not score_found and nlp:
         doc = nlp(clean_text)
         matcher = spacy.matcher.Matcher(nlp.vocab)
@@ -192,7 +208,6 @@ def calculate_metrics(data):
     credit = data["credit_score"]
     age = data["age"]
 
-    # Metric Logic
     dti = 0.3 if income > 30000 else 0.6
     
     risk_score = (
