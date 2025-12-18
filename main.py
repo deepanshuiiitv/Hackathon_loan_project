@@ -12,7 +12,7 @@ from ai_engine import extract_text, extract_fields, calculate_metrics
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="frontend/templates")
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
@@ -31,7 +31,6 @@ def dashboard_ui(request: Request):
         {"request": request, "loans": loans}
     )
 
-@app.post("/apply-loan")
 @app.post("/apply-loan")
 def apply_loan(
     name: str = Form(...),

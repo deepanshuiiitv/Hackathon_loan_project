@@ -1,2 +1,7 @@
-__pycache__
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
 .history/

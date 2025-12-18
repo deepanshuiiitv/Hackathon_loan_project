@@ -1,7 +1,9 @@
 pip install fastapi uvicorn pdfplumber spacy scikit-learn pandas numpy sqlalchemy
 python -m spacy download en_core_web_sm
 pip install fastapi uvicorn sqlalchemy pymysql python-multipart
-
+pip install transformers 
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+pip install datasets pandas numpy scikit-learn xgboost shap langchain openai
 
 # "pip install" these requirements 
 # transformers

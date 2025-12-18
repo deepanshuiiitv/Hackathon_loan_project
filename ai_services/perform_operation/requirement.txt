@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+datasets
+pandas
+numpy
+scikit-learn
+xgboost
+shap
+langchain
+openai
+slicer
+pyarrow
+multiprocess
+huggingface_hub
+transformers
