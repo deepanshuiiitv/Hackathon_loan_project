@@ -20,7 +20,7 @@ try:
     from extract_fields.ai_engine import extract_text, extract_fields
 except ImportError:
     # Fallback if you placed it in perform_operation
-    from perform_operation.ai_engine import extract_text, extract_fields
+    from extract_fields.ai_engine import extract_text, extract_fields
 
 FEATURE_TEXT = {
     "AGE": "the applicant’s age",
