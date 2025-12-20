@@ -14,7 +14,7 @@ FEATURES = [
     "BILL_AMT2",
 ]
 
-
+# for training purpose only
 def engineer_training_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     Feature engineering for TRAINING data (OpenML schema).
