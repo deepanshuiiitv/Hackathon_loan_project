@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manual Prediction</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="center">
+  <div class="card wide">
+    <h2>Manual Loan Prediction</h2>
+
+    <form id="form">
+      <input placeholder="Age" name="age" required>
+      <input placeholder="Monthly Income" name="monthly_income" required>
+      <input placeholder="Existing Debt" name="existing_monthly_debt" required>
+      <input placeholder="New Loan EMI" name="new_loan_emi" required>
+
+      <input placeholder="PAY_0" name="PAY_0">
+      <input placeholder="PAY_2" name="PAY_2">
+      <input placeholder="PAY_3" name="PAY_3">
+
+      <input placeholder="BILL_AMT1" name="BILL_AMT1">
+      <input placeholder="BILL_AMT2" name="BILL_AMT2">
+
+      <!-- 🔒 Button ID added -->
+      <button id="predictBtn" class="btn">Predict</button>
+    </form>
+
+    <pre id="output"></pre>
+  </div>
+
+<script>
+document.getElementById("form").onsubmit = async (e) => {
+  e.preventDefault();
+
+  const btn = document.getElementById("predictBtn");
+  btn.disabled = true;
+  btn.textContent = "Predicting...";
+  btn.style.opacity = "0.6";
+  btn.style.cursor = "not-allowed";
+
+  try {
+    const data = Object.fromEntries(new FormData(e.target));
+
+    const res = await fetch("/predict", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(data)
+    });
+
+    const result = await res.json();
+    document.getElementById("output").textContent =
+      JSON.stringify(result, null, 2);
+
+  } catch (err) {
+    console.error(err);
+    alert("Prediction failed. Please try again.");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Predict";
+    btn.style.opacity = "1";
+    btn.style.cursor = "pointer";
+  }
+};
+</script>
+</body>
+</html>

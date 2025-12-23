@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lender Dashboard</title>
+  <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+
+<body>
+
+  <div class="page-wrapper">
+    <div class="dashboard-card">
+
+      <div class="dashboard-header">
+        <h2>🏦 Lender Dashboard</h2>
+      </div>
+
+      <hr class="divider">
+
+      <table>
+        <tr>
+          <th>Date</th>
+          <th>Income</th>
+          <th>DTI %</th>
+          <th>Decision</th>
+          <th>Risk Factors</th>
+        </tr>
+
+        {% for log in logs %}
+        <tr>
+          <td>{{ log.created_at.strftime("%d %b %Y") }}</td>
+          <td>₹{{ "%.0f"|format(log.monthly_income) }}</td>
+          <td>{{ "%.2f"|format(log.dti_percent) }}</td>
+
+          <td class="{{ log.decision }}">
+            {{ log.decision }}
+            {% if log.interest_type %}
+              <br><small>{{ log.interest_type }}</small>
+            {% endif %}
+          </td>
+
+          <td>
+            <div class="box">
+              {% for r in log.top_risk_factors %}
+                • {{ r.feature }} ({{ "%.2f"|format(r.impact) }})<br>
+              {% endfor %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+
+    </div>
+  </div>
+
+</body>
+</html>

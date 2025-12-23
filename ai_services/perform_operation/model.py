@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
 import shap
 
-from perform_operation.features import FEATURES, engineer_training_features
+from ai_services.perform_operation.features import FEATURES, engineer_training_features
 
 model = None
 explainer = None

@@ -1,0 +1,83 @@
+/* ---------- Global ---------- */
+body {
+  margin: 0;
+  
+  background: linear-gradient(135deg, #020617, #020024);
+  color: #e5e7eb;
+  font-family: system-ui;
+}
+
+/* ---------- Center Utility (FOR FORMS ONLY) ---------- */
+.center {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;   /* ✅ FIX */
+  padding-top: 40px;         /* spacing from top */
+}
+
+
+
+/* ---------- Card ---------- */
+.card {
+  background: #0f172a;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  text-align: center;
+}
+
+/* Wider cards (manual / upload) */
+.wide {
+  width: 520px;
+}
+
+/* ---------- Inputs ---------- */
+input {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: block;
+  width: 100%;
+  background: #38bdf8;
+  color: #020617;
+  padding: 12px;
+  margin-top: 15px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondary {
+  background: #22c55e;
+}
+
+/* ---------- Output ---------- */
+pre {
+  text-align: left;
+  background: #020617;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 20px;
+  overflow: auto;
+}
+
+.wide-xl {
+  width: 1000px;
+  max-width: 96vw;
+}
+

@@ -1,0 +1,83 @@
+/* ---------- Page ---------- */
+body {
+  margin: 0;
+  padding: 40px;
+  background: linear-gradient(135deg, #020617, #020024);
+  color: #e5e7eb;
+  font-family: system-ui;
+}
+
+/* ---------- Page Wrapper ---------- */
+.page-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* ---------- Card ---------- */
+.dashboard-card {
+  width: 100%;
+  max-width: 1200px;
+  background: #0f172a;
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+
+/* ---------- Header ---------- */
+.dashboard-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.dashboard-header h2 {
+  margin: 0;
+}
+
+/* ---------- Divider ---------- */
+.divider {
+  border: none;
+  border-top: 1px solid #1e293b;
+  margin-bottom: 25px;
+}
+
+/* ---------- Table ---------- */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #1e293b;
+  font-size: 14px;
+}
+
+th {
+  color: #38bdf8;
+  text-align: left;
+}
+
+/* ---------- Decision States ---------- */
+.APPROVED {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.REJECTED {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.HIGH {
+  color: #facc15;
+  font-weight: 600;
+}
+
+/* ---------- Risk Box ---------- */
+.box {
+  background: #020617;
+  padding: 10px;
+  border-radius: 8px;
+}
