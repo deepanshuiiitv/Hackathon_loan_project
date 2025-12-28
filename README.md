@@ -176,5 +176,23 @@ uvicorn main:app --reload
 * ✅ OCR + rules + ML (enterprise-friendly)
 * ✅ Production-ready UI & database
 
+## 🗂️ Folder Structure
+
+```
+LoanLens_AI/
+├── ai_services/                  # AI/OCR/NLP extraction logic
+├── database/                     # DB connection + models
+├── static/                      # Static assets (CSS/JS)
+├── templates/                  # Frontend templates (e.g., dashboard UI)
+├── test_images/                # Sample/test image files
+├── test_pdfs/                  # Sample/test PDF documents
+├── test_pdfs_non_digital/      # Sample PDFs requiring non-digital OCR
+├── .env                        # Environment config (ignored)
+├── .gitignore                  # Git ignore rules
+├── Readme.md                   # Project README
+├── main.py                     # FastAPI backend entrypoint
+├── requirements.txt            # Python dependencies
+
+```
 ---
 
